@@ -44,6 +44,9 @@ fn chesc_cmp(subcmd_name: String, subcmd_options: std::collections::HashMap<Stri
 
     match cmp.load_src_files() {
         Ok(()) => (),
-        Err(e) => eprintln!("{}", e),
+        Err(e) => {
+            cons.log(e.get_log_data(), show_details);
+            panic!("{}", Console::get_terminate_msg());
+        }
     };
 }
