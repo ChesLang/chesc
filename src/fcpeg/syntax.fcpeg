@@ -7,47 +7,70 @@
     + use Class,
     + use ClassFields,
     + use Func,
+    + use Literal,
+    + use Symbol,
     + use Type,
-    Main <- ((Class.Def : Func.Def))*,
+    + use Var,
+    Main <- ((Symbol.EmptyLine : Class.Def : Func.Def))*,
+    Exprs <- (Func.Call : Literal.Literals : Var.ID) (Symbol.Space+ "as" Symbol.Space+ Type.Type)?,
+    % 式とは違い、文は最後に1つ以上の改行を持つ
+    Stts <- Symbol.EmptyLine : Var.Def : Var.Init,
 }
 
 [Class]{
     + use Symbol,
     + use Type,
-    Def <- Symbol.Space* "class" Symbol.Space+ Symbol.ID DefImpl? Symbol.Space* Symbol.NewLine+,
-    DefImpl <- Symbol.Space+ "impl" Symbol.Space+ Type.Type (Symbol.Space* "," Symbol.Space* Type.Type)*,
+    Def <- "class" Symbol.Div+ Symbol.ID (Symbol.Div+ DefImpl)? Symbol.EndOfLine,
+    DefImpl <- "impl" Symbol.Div+ Type.Type (Symbol.Div* "," Symbol.Div* Type.Type)*,
     FieldsDef <- " ",
 }
 
 [Func]{
     + use Symbol,
+    + use Syntax,
     + use Type,
     + use Expr,
-    Name <- Symbol.ID,
-    Def <- "fn" Symbol.Space+ Name Symbol.Space* "(" Symbol.Space* DefArgs Symbol.Space* ")" (Symbol.Space* Type.Type)? Symbol.Space* Symbol.NewLine+ (Symbol.Indent* Elems)* "end" Symbol.NewLine+,
-    DefArgs <- Symbol.ID Symbol.Space+ Type.Type (Symbol.Space* "," Symbol.Space* Symbol.ID Symbol.Space+ Type.Type)*,
-    Elems <- Call,
-    Call <- Symbol.ID Symbol.Space* "(" Symbol.Space* CallArgs? Symbol.Space* ")" Symbol.Space* Symbol.NewLine+,
-    CallArgs <- Expr.Exprs (Symbol.Space* "," Symbol.Space* Expr.Exprs)*,
+    + use Var,
+    Name <- "@"? Symbol.ID,
+    Def <- "fn" Symbol.Div+ Name Symbol.Div* "(" Symbol.Div* DefArgs Symbol.Div* ")" (Symbol.Div* Type.Type)? Symbol.EndOfLine Content* DefEnd,
+    DefArgs <- Symbol.ID Symbol.Div+ Type.Type (Symbol.Div* "," Symbol.Div* Var.ID Symbol.Div+ Type.Type)*,
+    Content <- Symbol.Space* (Syntax.Stts : Syntax.Exprs Symbol.EndOfLine),
+    DefEnd <- Symbol.Space* "end" Symbol.EndOfLine,
+    Call <- Name Symbol.Div* "(" Symbol.Div* CallArgs? Symbol.Div* ")",
+    CallArgs <- Syntax.Exprs (Symbol.Div* "," Symbol.Div* Syntax.Exprs)*,
+}
+
+[Var]{
+    + use Expr,
+    + use Symbol,
+    + use Syntax,
+    ID <- Symbol.ID,
+    Def <- "let" Symbol.Div+ ID Symbol.Div* Symbol.NewLine+,
+    Init <- "let" Symbol.Div+ ID Symbol.Div* "=" Symbol.Div* Syntax.Exprs Symbol.Div* Symbol.NewLine+,
 }
 
 [Type]{
     % Vec<Map<str, str>>
     + use Symbol,
-    Type <- Symbol.ID Symbol.Space* "<" Symbol.Space* Type (Symbol.Space* "," Symbol.Space* Type)* Symbol.Space* ">" : Symbol.ID,
+    Type <- Symbol.ID Symbol.Div* "<" Symbol.Div* Type (Symbol.Div* "," Symbol.Div* Type)* Symbol.Div* ">" : Symbol.ID,
 }
 
-[Expr]{
-    + use Symbol,
-    + use Type,
-    Exprs <- (Str : Num) (Symbol.Space+ "as" Symbol.Space+ Type.Type)?,
+[Literal]{
+    Literals <- Str : Num,
     Str <- "\"" (!"\"" .)* "\"",
     Num <- [0-9]+ ("." [0-9]+)?,
 }
 
+[Keyword]{
+    Reserved <- "end" : "fn" : "impl",
+}
+
 [Symbol]{
-    ID <- [a-zA-Z_] [a-zA-Z0-9_]*,
-    Space <- " ",
-    Indent <- Space{4},
+    + use Keyword,
+    ID <- !Keyword.Reserved ([a-zA-Z_] [a-zA-Z0-9_]*),
+    Space <- " " : "\t",
     NewLine <- "\n",
+    Div <- Space : NewLine,
+    EmptyLine <- Space* NewLine,
+    EndOfLine <- Space* NewLine,
 }
