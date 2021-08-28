@@ -12,6 +12,8 @@ fn chesc_cmp(_subcmd_name: String, subcmd_options: std::collections::HashMap<Str
     // println!("{}", subcmd_name);
     // println!("{:?}", subcmd_options);
 
+    let start_time = std::time::Instant::now();
+
     let show_details = subcmd_options.contains_key("-det");
 
     let input_paths = match subcmd_options.get("-i") {
@@ -80,4 +82,7 @@ fn chesc_cmp(_subcmd_name: String, subcmd_options: std::collections::HashMap<Str
             return;
         }
     };
+
+    let end_time = start_time.elapsed();
+    println!("Command process has finished in {} ms.", end_time.as_millis());
 }
