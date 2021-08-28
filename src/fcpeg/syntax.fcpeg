@@ -12,7 +12,8 @@
     + use Type,
     + use Var,
     Main <- ((Symbol.Space* (Symbol.EndOfLine : Class.Def : Func.Def)))*,
-    ExprElem <- Func.Call : Literal.Literal : Symbol.ID : Type.BuiltinType,
+    ExprElem <- Func.Call : Literal.Literal : Type.Type : Symbol.ID,
+    % 名前空間とメソッドチェインなどの区別は？
     Expr <- "!"? ExprElem (Symbol.Div* "." Symbol.Div* ExprElem)* (Symbol.Div+ "as" Symbol.Div+ Type.Type)? (Symbol.Div* Symbol.Operators Symbol.Div* Expr)*,
     % 式とは違い、文は最後に1つ以上の改行を持つ,
     Stt <- Symbol.EndOfLine : Var.Def : Var.Init : Var.Subst,
@@ -45,7 +46,6 @@
     + use Symbol,
     + use Syntax,
     + use Type,
-    % 消す
     Def <- "let" Symbol.Div+ Symbol.ID Symbol.EndOfLine,
     Init <- "let" Symbol.Div+ Subst,
     Subst <- Syntax.Expr Symbol.Div* "=" Symbol.Div* Syntax.Expr Symbol.EndOfLine,
@@ -53,28 +53,22 @@
 
 [Type]{
     + use Bool,
+    + use Char,
+    + use Num,
+    + use Str,
     + use Symbol,
     + use Type,
     % 名前空間
     Type <- (Symbol.ID : Type.BuiltinType) (Symbol.Div* "<" Symbol.Div* Type (Symbol.Div* "," Symbol.Div* Type)* Symbol.Div* ">")?,
-    BuiltinType <- Bool.Type : BuiltinNumType : ("char" : "str") Symbol.ExceptFollowingIDChar,
-    BuiltinNumType <- ("s8" : "s16" : "s32" : "s64" : "u8" : "u16" : "u32" : "u64" : "f32" : "f64") Symbol.ExceptFollowingIDChar,
+    BuiltinType <- Bool.Type : Num.Type : Char.Type : Str.Type,
 }
 
 [Literal]{
     + use Bool,
+    + use Char,
     + use Num,
-    Literal <- Bool.Value : Num.Num : Char : Str,
-    % ブロックに分離, エスケープシーケンスを追加
-    Str <- "\"" (!"\"" .)* "\"",
-    Char <- "'" !"'" . "'",
-}
-
-[Num]{
-    + use Type,
-    Num <- NumPrefix? [0-9]+ ("." [0-9]+)? Type.BuiltinNumType?,
-    NumPrefix <- "0b" : "0o" : "0x",
-    % 数式
+    + use Str,
+    Literal <- Bool.Value : Num.Value : Char.Value : Str.Value,
 }
 
 [Bool]{
@@ -83,12 +77,32 @@
     Value <- ("true" : "false") Symbol.ExceptFollowingIDChar,
 }
 
+[Num]{
+    + use Symbol,
+    + use Type,
+    Type <- ("s8" : "s16" : "s32" : "s64" : "u8" : "u16" : "u32" : "u64" : "f32" : "f64") Symbol.ExceptFollowingIDChar,
+    Value <- NumPrefix? [0-9]+ ("." [0-9]+)? Type?,
+    NumPrefix <- "0b" : "0o" : "0x",
+}
+
+[Char]{
+    + use Symbol,
+    Type <- "char" Symbol.ExceptFollowingIDChar,
+    Value <- "'" !"'" ("\\"? .) "'",
+}
+
+[Str]{
+    + use Symbol,
+    Type <- "str" Symbol.ExceptFollowingIDChar,
+    Value <- "\"" ("\\"? !"\"" .)* "\"",
+}
+
 [Keyword]{
     + use Bool,
     + use Num,
     + use Symbol,
     + use Type,
-    Reserved <- ("end" : "fn" : "impl") Symbol.ExceptFollowingIDChar : Type.BuiltinType : Bool.Value,
+    Reserved <- ("end" : "fn" : "impl" : "let") Symbol.ExceptFollowingIDChar : Type.BuiltinType : Bool.Value,
 }
 
 [Symbol]{
