@@ -1,0 +1,9 @@
+[Expr]{
+    Expr <- "expr",
+}
+
+[DataType]{
+    + use Misc.Misc as Misc,
+
+    Type <- Misc.GenID,
+}
