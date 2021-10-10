@@ -5,9 +5,11 @@
 }
 
 [Misc]{
-    + use Symbol,
+    + use Keyword,
 
-    ID <- [a-zA-Z_] [a-zA-Z0-9_]*,
-    % ジェネリクス対応 ID
-    GenID <- ID (Symbol.Space*# "<"# Symbol.Space*# GenID Symbol.Space*# (","# Symbol.Space*# GenID)* Symbol.Space*# ">"#)?,
+    ID <- !Keyword.Reserved ([a-zA-Z_] [a-zA-Z0-9_]*),
+}
+
+[Keyword]{
+    Reserved <- "data" : "end" : "enum" : "impl" : "macro" : "struct" : "trait",
 }

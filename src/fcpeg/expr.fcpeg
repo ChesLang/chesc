@@ -4,6 +4,19 @@
 
 [DataType]{
     + use Misc.Misc as Misc,
+    + use Misc.Symbol as Symbol,
 
-    Type <- Misc.GenID,
+    % note: 最後にスペースの付かないジェネリクス対応の型,
+    Type <- GenType : SimpleType,
+    % note: 最後に n 回以上のスペースが付いたジェネリクス対応の型,
+    TypeWithSpace <- GenType Symbol.Space* : SimpleType Symbol.Space+,
+
+    % note: 通常の型,
+    SimpleType <- Misc.ID,
+    % note: ジェネリクス型,
+    GenType <- SimpleType Symbol.Space*# "<"# Symbol.Space*# (GenType : SimpleType) Symbol.Space*# (","# Symbol.Space*# (GenType : SimpleType))* Symbol.Space*# ">"#,
+}
+
+[Literal]{
+    Literal <- "A",
 }
