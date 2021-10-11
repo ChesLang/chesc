@@ -6,10 +6,6 @@
 [Syntax]{
     + use FileItem,
     + use Misc.Symbol as Symbol,
-
-    + use Expr.DataType as DataType,
-    %+ use Symbol.Symbol as Symbol,
-    + use Misc.Misc as Misc,
     Main <- Symbol.Space*# Symbol.LineEnd*# FileItem.Item Symbol.Space*#,
 }
 
@@ -41,7 +37,7 @@
     EnumBlock <- BlockStart EnumFieldDef* BlockEnd,
 
     NormalFieldDef <- Symbol.Space*# Misc.ID Symbol.Space+# DataType.Type Symbol.LineEnd+#,
-    EnumFieldDef <- Symbol.Space*# Misc.ID ((Symbol.Space*# "=" Symbol.Space*# Literal.Literal))? Symbol.LineEnd+#,
+    EnumFieldDef <- Symbol.Space*# Misc.ID (Symbol.Space*# "=" Symbol.Space*# Literal.Literal)? Symbol.LineEnd+#,
 }
 
 [ImplBlock]{

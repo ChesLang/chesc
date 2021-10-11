@@ -15,8 +15,17 @@
     SimpleType <- Misc.ID,
     % note: ジェネリクス型,
     GenType <- SimpleType Symbol.Space*# "<"# Symbol.Space*# (GenType : SimpleType) Symbol.Space*# (","# Symbol.Space*# (GenType : SimpleType))* Symbol.Space*# ">"#,
+
+    BuiltInNumType <- "s8" : "u8" : "s16" : "s16" : "s32" : "u32" : "s64" : "u64" : "f32" : "f64",
 }
 
 [Literal]{
-    Literal <- "A",
+    + use DataType,
+
+    Literal <- Bool : Num : Char : Str,
+    Bool <- "true" : "false",
+    Num <- [0-9]+ ("." [0-9]+)? DataType.BuiltInNumType?,
+    EscSeq <- "\\" ("\\" : "0" : "'" : "\"" : "b" : "n" : "u"),
+    Char <- "'" (!"\\\"" EscSeq : !"'" .) "'",
+    Str <- "\"" ((!"\\'" EscSeq : !(("\\" : "\"")) .))* "\"" : "r\"" ((!"\"" .))* "\"",
 }
