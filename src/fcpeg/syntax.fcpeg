@@ -1,4 +1,5 @@
 [Main]{
+    % todo: コメント追加,
     + use Syntax,
     + start Syntax.Main,
 }
@@ -26,7 +27,7 @@
 
 [DataBlock]{
     + use Expr.DataType as DataType,
-    + use Expr.Literal as Literal,
+    + use Expr.Expr as Expr,
     + use Misc.Symbol as Symbol,
     + use Misc.Misc as Misc,
 
@@ -37,7 +38,7 @@
     EnumBlock <- BlockStart EnumFieldDef* BlockEnd,
 
     NormalFieldDef <- Symbol.Space*# Misc.ID Symbol.Space+# DataType.Type Symbol.LineEnd+#,
-    EnumFieldDef <- Symbol.Space*# Misc.ID (Symbol.Space*# "=" Symbol.Space*# Literal.Literal)? Symbol.LineEnd+#,
+    EnumFieldDef <- Symbol.Space*# Misc.ID (Symbol.Space*# "=" Symbol.Space*# Expr.ExprChain)? Symbol.LineEnd+#,
 }
 
 [ImplBlock]{

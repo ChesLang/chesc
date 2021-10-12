@@ -1,20 +1,30 @@
 [Expr]{
-    Expr <- "expr",
+    + use DataType,
+    + use Func,
+    + use Literal,
+    + use Misc.Misc as Misc,
+    + use Misc.Symbol as Symbol,
+
+    Expr <- Func.Call : DataType.GenType : Literal.Literal : Misc.ID,
+
+    ExprChain <- Negative? ParenableExprChain TypeCast?,
+    ParenableExprChain <- (ParenedExprChain : Expr) ExprChainFollower*,
+    ParenedExprChain <- "("# Symbol.Space*# ExprChain Symbol.Space*# ")"#,
+    ExprChainFollower <- Symbol.Space*# "."# Symbol.Space*# !((DataType.GenType : Literal.Literal)) Expr,
+
+    Negative <- "!" Symbol.Space*#,
+    TypeCast <- Symbol.Space*# "as"# Symbol.Space+# DataType.Type,
 }
 
 [DataType]{
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    % note: 最後にスペースの付かないジェネリクス対応の型,
-    Type <- GenType : SimpleType,
-    % note: 最後に n 回以上のスペースが付いたジェネリクス対応の型,
-    TypeWithSpace <- GenType Symbol.Space* : SimpleType Symbol.Space+,
-
-    % note: 通常の型,
-    SimpleType <- Misc.ID,
-    % note: ジェネリクス型,
-    GenType <- SimpleType Symbol.Space*# "<"# Symbol.Space*# (GenType : SimpleType) Symbol.Space*# (","# Symbol.Space*# (GenType : SimpleType))* Symbol.Space*# ">"#,
+    Type <- GenType : SimpleTypeChain,
+    % note: ジェネリクス非対応の通常の型,
+    SimpleTypeChain <- Misc.ID SimpleTypeChainFollower*,
+    SimpleTypeChainFollower <- Symbol.Space*# "." Symbol.Space*# Misc.ID, 
+    GenType <- SimpleTypeChain Symbol.Space*# "<"# Symbol.Space*# (GenType : SimpleTypeChain) Symbol.Space*# (","# Symbol.Space*# (GenType : SimpleType))* Symbol.Space*# ">"#,
 
     BuiltInNumType <- "s8" : "u8" : "s16" : "s16" : "s32" : "u32" : "s64" : "u64" : "f32" : "f64",
 }
@@ -26,6 +36,17 @@
     Bool <- "true" : "false",
     Num <- [0-9]+ ("." [0-9]+)? DataType.BuiltInNumType?,
     EscSeq <- "\\" ("\\" : "0" : "'" : "\"" : "b" : "n" : "u"),
-    Char <- "'" (!"\\\"" EscSeq : !"'" .) "'",
-    Str <- "\"" ((!"\\'" EscSeq : !(("\\" : "\"")) .))* "\"" : "r\"" ((!"\"" .))* "\"",
+    Char <- "'"# (!"\\\"" EscSeq : !"'" .) "'"#,
+    Str <- "\""# ((!"\\'" EscSeq : !(("\\" : "\"")) .))* "\""# : "r" "\""# ((!"\"" .))* "\""#,
+}
+
+[Func]{
+    + use Expr,
+    + use Misc.Misc as Misc,
+    + use Misc.Symbol as Symbol,
+
+    Name <- "@"? Misc.ID,
+    % todo: ジェネリクス対応,
+    Call <- Name Symbol.Space*# "("# Symbol.Space*# CallArgs? Symbol.Space*# ")"#,
+    CallArgs <- Expr.ExprChain (Symbol.Space*# ","# Symbol.Space*# Expr.ExprChain)*,
 }
