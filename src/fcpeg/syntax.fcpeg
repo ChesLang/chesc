@@ -1,5 +1,4 @@
 [Main]{
-    % todo: コメント追加,
     + use Syntax,
     + start Syntax.Main,
 }
@@ -7,7 +6,8 @@
 [Syntax]{
     + use FileItem,
     + use Misc.Symbol as Symbol,
-    Main <- Symbol.Space*# Symbol.LineEnd*# FileItem.Item Symbol.Space*#,
+
+    Main <- Symbol.Space*# Symbol.LineEnd*# FileItem.Item? Symbol.Space*#,
 }
 
 [FileItem]{

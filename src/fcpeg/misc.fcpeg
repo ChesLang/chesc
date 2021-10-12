@@ -1,7 +1,15 @@
 [Symbol]{
+    + use Comment,
     Space <- " " : "\t",
     NewLine <- "\n",
-    LineEnd <- Space* (NewLine : ";"),
+    LineEnd <- Space* (Comment.Comment : NewLine : ";"),
+    SimpleLineEnd <- Space* NewLine,
+}
+
+[Comment]{
+    + use Symbol,
+
+    Comment <- Symbol.Space* "#" (!Symbol.NewLine .)* Symbol.SimpleLineEnd,
 }
 
 [Misc]{
