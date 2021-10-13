@@ -9,11 +9,11 @@
     + use Misc.Symbol as Symbol,
 
     GeneralExpr <- LogicExpr.LogicExprChain : CompExpr.CompExprChain : OpeExpr.OpeExprChain : ExprChain,
-    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : Func.Call : DataType.GenType : Literal.Literal : Misc.ID,
+    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : Func.Call : DataType.GenericsType : Literal.Literal : Misc.ID,
 
     ExprChain <- Negative? (ParenedExprChain : Expr) ExprChainFollower* TypeCast?,
     ParenedExprChain <- "("# Symbol.Space*# ExprChain Symbol.Space*# ")"#,
-    ExprChainFollower <- Symbol.Space*# "."# Symbol.Space*# !((DataType.GenType : Literal.Literal)) Expr,
+    ExprChainFollower <- Symbol.Space*# "."# Symbol.Space*# !((DataType.GenericsType : Literal.Literal)) Expr,
 
     Negative <- "!" Symbol.Space*#,
     TypeCast <- Symbol.Space*# "as"# Symbol.Space+# DataType.Type,
@@ -54,7 +54,6 @@
 
     LogicExprChain <- LogicExprElem LogicExprChainFollower+,
     LogicExprChainFollower <- Symbol.Space*# LogicOpeSymbol Symbol.Space*# LogicExprElem,
-    % todo: CompExpr.CompExprChain : OpeExpr.OpeExprChain : Expr.ExprChain に変更
     LogicExprElem <- CompExpr.CompExprChain : OpeExpr.OpeExprChain : Expr.ExprChain,
 
     ParenedLogicExprChain <- "("# Symbol.Space*# LogicExprChain Symbol.Space*# ")"#,
@@ -66,11 +65,13 @@
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Type <- GenType : SimpleTypeChain,
+    Type <- GenericsType : SimpleTypeChain,
     % note: ジェネリクス非対応の通常の型,
     SimpleTypeChain <- Misc.ID SimpleTypeChainFollower*,
     SimpleTypeChainFollower <- Symbol.Space*# "." Symbol.Space*# Misc.ID, 
-    GenType <- SimpleTypeChain Symbol.Space*# "<"# Symbol.Space*# (GenType : SimpleTypeChain) Symbol.Space*# (","# Symbol.Space*# (GenType : SimpleType))* Symbol.Space*# ">"#,
+    GenericsType <- SimpleTypeChain Symbol.Space*# GenericsTypeBody,
+    GenericsTypeBody <- "<"# Symbol.Space*# GenericsTypeBodyElem Symbol.Space*# (","# Symbol.Space*# GenericsTypeBodyElem)* Symbol.Space*# ">"#,
+    GenericsTypeBodyElem <- GenericsType : SimpleTypeChain,
 
     BuiltInNumType <- "s8" : "u8" : "s16" : "s16" : "s32" : "u32" : "s64" : "u64" : "f32" : "f64",
 }
@@ -87,12 +88,12 @@
 }
 
 [Func]{
+    + use DataType,
     + use Expr,
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
     Name <- "@"? Misc.ID,
-    % todo: ジェネリクス対応,
-    Call <- Name Symbol.Space*# "("# Symbol.Space*# CallArgs? Symbol.Space*# ")"#,
+    Call <- Name Symbol.Space*# DataType.GenericsTypeBody? Symbol.Space*# "("# Symbol.Space*# CallArgs? Symbol.Space*# ")"#,
     CallArgs <- Expr.ExprChain (Symbol.Space*# ","# Symbol.Space*# Expr.ExprChain)*,
 }
