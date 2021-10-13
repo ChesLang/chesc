@@ -38,7 +38,7 @@
     EnumBlock <- BlockStart EnumFieldDef* BlockEnd,
 
     NormalFieldDef <- Symbol.Space*# Misc.ID Symbol.Space+# DataType.Type Symbol.LineEnd+#,
-    EnumFieldDef <- Symbol.Space*# Misc.ID (Symbol.Space*# "=" Symbol.Space*# Expr.ExprChain)? Symbol.LineEnd+#,
+    EnumFieldDef <- Symbol.Space*# Misc.ID (Symbol.Space*# "=" Symbol.Space*# Expr.GeneralExpr)? Symbol.LineEnd+#,
 }
 
 [ImplBlock]{

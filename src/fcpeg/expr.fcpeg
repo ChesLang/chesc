@@ -2,10 +2,12 @@
     + use DataType,
     + use Func,
     + use Literal,
+    + use LogicExpr,
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Expr <- Func.Call : DataType.GenType : Literal.Literal : Misc.ID,
+    GeneralExpr <- LogicExpr.LogicExprChain : ExprChain,
+    Expr <- LogicExpr.ParenedLogicExpr : Func.Call : DataType.GenType : Literal.Literal : Misc.ID,
 
     ExprChain <- Negative? ParenableExprChain TypeCast?,
     ParenableExprChain <- (ParenedExprChain : Expr) ExprChainFollower*,
@@ -14,6 +16,16 @@
 
     Negative <- "!" Symbol.Space*#,
     TypeCast <- Symbol.Space*# "as"# Symbol.Space+# DataType.Type,
+}
+
+[LogicExpr]{
+    + use Expr,
+    + use Misc.Symbol as Symbol,
+
+    LogicExprChain <- Expr.ExprChain LogicExprChainFollower+,
+    LogicExprChainFollower <- Symbol.Space*# LogicSymbol Symbol.Space*# Expr.ExprChain,
+    ParenedLogicExpr <- Expr.Negative? "("# Symbol.Space*# LogicExprChain Symbol.Space*# ")"# Expr.TypeCast?,
+    LogicSymbol <- "&&" : "||",
 }
 
 [DataType]{
