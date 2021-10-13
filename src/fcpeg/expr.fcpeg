@@ -4,11 +4,12 @@
     + use Func,
     + use Literal,
     + use LogicExpr,
+    + use OpeExpr,
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    GeneralExpr <- LogicExpr.LogicExprChain : CompExpr.CompExprChain : ExprChain,
-    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : Func.Call : DataType.GenType : Literal.Literal : Misc.ID,
+    GeneralExpr <- LogicExpr.LogicExprChain : CompExpr.CompExprChain : OpeExpr.OpeExprChain : ExprChain,
+    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : Func.Call : DataType.GenType : Literal.Literal : Misc.ID,
 
     ExprChain <- Negative? (ParenedExprChain : Expr) ExprChainFollower* TypeCast?,
     ParenedExprChain <- "("# Symbol.Space*# ExprChain Symbol.Space*# ")"#,
@@ -18,14 +19,27 @@
     TypeCast <- Symbol.Space*# "as"# Symbol.Space+# DataType.Type,
 }
 
-[CompExpr]{
+[OpeExpr]{
     + use Expr,
     + use Misc.Symbol as Symbol,
 
+    OpeExprChain <- OpeExprElem OpeExprChainFollower+,
+    OpeExprChainFollower <- Symbol.Space*# OpeSymbol Symbol.Space*# OpeExprElem,
+    OpeExprElem <- Expr.ExprChain,
+
+    ParenedOpeExprChain <- "("# Symbol.Space*# OpeExprChain Symbol.Space*# ")"#,
+
+    OpeSymbol <- "+" : "-" : "*" : "/" : "%" : "^" : "~",
+}
+
+[CompExpr]{
+    + use Expr,
+    + use Misc.Symbol as Symbol,
+    + use OpeExpr,
+
     CompExprChain <- CompExprElem CompExprChainFollower+,
     CompExprChainFollower <- Symbol.Space*# CompOpeSymbol Symbol.Space*# CompExprElem,
-    % todo,
-    CompExprElem <- Expr.ExprChain,
+    CompExprElem <- OpeExpr.OpeExprChain : Expr.ExprChain,
 
     ParenedCompExprChain <- "("# Symbol.Space*# CompExprChain Symbol.Space*# ")"#,
 
@@ -35,12 +49,13 @@
 [LogicExpr]{
     + use CompExpr,
     + use Expr,
+    + use OpeExpr,
     + use Misc.Symbol as Symbol,
 
     LogicExprChain <- LogicExprElem LogicExprChainFollower+,
     LogicExprChainFollower <- Symbol.Space*# LogicOpeSymbol Symbol.Space*# LogicExprElem,
     % todo: CompExpr.CompExprChain : OpeExpr.OpeExprChain : Expr.ExprChain に変更
-    LogicExprElem <- CompExpr.CompExprChain : Expr.ExprChain,
+    LogicExprElem <- CompExpr.CompExprChain : OpeExpr.OpeExprChain : Expr.ExprChain,
 
     ParenedLogicExprChain <- "("# Symbol.Space*# LogicExprChain Symbol.Space*# ")"#,
 
