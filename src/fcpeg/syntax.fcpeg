@@ -62,6 +62,7 @@
     Method <- StartMethod Stmt.Stmt* EndMethod,
     StartMethod <- Symbol.Space*# "fn"# Symbol.Space+# Func.Name Symbol.Space*# "("# Symbol.Space*# DefArgs? Symbol.Space*# ")"# Symbol.LineEnd+#,
     EndMethod <- Symbol.Space*# "end"# Symbol.LineEnd+#,
+
     DefArgs <- DefArgElem (Symbol.Space*# ","# Symbol.Space*# DefArgElem)*,
-    DefArgElem <- Misc.ID Symbol.Space+# DataType.Type,
+    DefArgElem <- Func.ArgMut? Func.ArgRef? Misc.ID Symbol.Space+# DataType.Type,
 }

@@ -94,6 +94,11 @@
     + use Misc.Symbol as Symbol,
 
     Name <- (Misc.ID Symbol.Space*# "." Symbol.Space*#)* "@"? Misc.ID,
+
     Call <- Name Symbol.Space*# DataType.GenericsTypeBody? Symbol.Space*# "("# Symbol.Space*# CallArgs? Symbol.Space*# ")"#,
-    CallArgs <- Expr.ExprChain (Symbol.Space*# ","# Symbol.Space*# Expr.ExprChain)*,
+    CallArgs <- CallArgElem (Symbol.Space*# ","# Symbol.Space*# CallArgElem)*,
+    CallArgElem <- ArgMut? ArgRef? Expr.ExprChain,
+
+    ArgMut <- "mut"# Symbol.Space+#,
+    ArgRef <- "ref" Symbol.Space+#,
 }
