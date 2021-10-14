@@ -21,7 +21,8 @@
     % note: 先頭の行終了を強制するため最初に LineEnd+ を置く,
     Struct <- "struct"# Symbol.Space+# DataType.Type Symbol.LineEnd+# ((DataBlock.NormalBlock : ImplBlock.Block))*,
     Trait <- "trait"# Symbol.Space+# DataType.Type Symbol.LineEnd+# ((DataBlock.NormalBlock : ImplBlock.Block))*,
-    Enum <- "enum"# Symbol.Space+# Misc.ID (Symbol.Space+# DataType.Type)? Symbol.LineEnd+# ((DataBlock.EnumBlock : ImplBlock.Block))*,
+    Enum <- "enum"# Symbol.Space+# Misc.ID EnumTypeParameter? Symbol.LineEnd+# ((DataBlock.EnumBlock : ImplBlock.Block))*,
+    EnumTypeParameter <- Symbol.Space+# DataType.Type,
     Macro <- "macro"#,
 }
 
@@ -31,7 +32,7 @@
     + use Misc.Symbol as Symbol,
     + use Misc.Misc as Misc,
 
-    BlockStart <- Symbol.Space*# "data" Symbol.LineEnd+#,
+    BlockStart <- Symbol.Space*# "data"# Symbol.LineEnd+#,
     BlockEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
 
     NormalBlock <- BlockStart NormalFieldDef* BlockEnd,
@@ -42,5 +43,25 @@
 }
 
 [ImplBlock]{
-    Block <- "impl",
+    + use Method,
+    + use Misc.Symbol as Symbol,
+
+    BlockStart <- Symbol.Space*# "impl"# Symbol.LineEnd+#,
+    BlockEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
+
+    Block <- BlockStart Method.Method* BlockEnd,
+}
+
+[Method]{
+    + use Expr.DataType as DataType,
+    + use Expr.Func as Func,
+    + use Misc.Misc as Misc,
+    + use Misc.Symbol as Symbol,
+    + use Stmt.Stmt as Stmt,
+
+    Method <- StartMethod Stmt.Stmt* EndMethod,
+    StartMethod <- Symbol.Space*# "fn"# Symbol.Space+# Func.Name Symbol.Space*# "("# Symbol.Space*# DefArgs? Symbol.Space*# ")"# Symbol.LineEnd+#,
+    EndMethod <- Symbol.Space*# "end"# Symbol.LineEnd+#,
+    DefArgs <- DefArgElem (Symbol.Space*# ","# Symbol.Space*# DefArgElem)*,
+    DefArgElem <- Misc.ID Symbol.Space+# DataType.Type,
 }

@@ -93,7 +93,7 @@
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Name <- "@"? Misc.ID,
+    Name <- (Misc.ID Symbol.Space*# "." Symbol.Space*#)* "@"? Misc.ID,
     Call <- Name Symbol.Space*# DataType.GenericsTypeBody? Symbol.Space*# "("# Symbol.Space*# CallArgs? Symbol.Space*# ")"#,
     CallArgs <- Expr.ExprChain (Symbol.Space*# ","# Symbol.Space*# Expr.ExprChain)*,
 }
