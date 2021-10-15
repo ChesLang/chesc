@@ -17,13 +17,12 @@
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Item <- Symbol.Space*# (Struct : Trait : Enum : Macro),
+    Item <- Symbol.Space*# (Struct : Trait : Enum),
     % note: 先頭の行終了を強制するため最初に LineEnd+ を置く,
     Struct <- "struct"# Symbol.Space+# DataType.Type Symbol.LineEnd+# ((DataBlock.NormalBlock : ImplBlock.Block))*,
     Trait <- "trait"# Symbol.Space+# DataType.Type Symbol.LineEnd+# ((DataBlock.NormalBlock : ImplBlock.Block))*,
     Enum <- "enum"# Symbol.Space+# Misc.ID EnumTypeParameter? Symbol.LineEnd+# ((DataBlock.EnumBlock : ImplBlock.Block))*,
     EnumTypeParameter <- Symbol.Space+# DataType.Type,
-    Macro <- "macro"#,
 }
 
 [DataBlock]{

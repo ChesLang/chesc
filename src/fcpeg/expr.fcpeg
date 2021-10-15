@@ -100,5 +100,5 @@
     CallArgElem <- ArgMut? ArgRef? Expr.ExprChain,
 
     ArgMut <- "mut"# Symbol.Space+#,
-    ArgRef <- "ref" Symbol.Space+#,
+    ArgRef <- "ref"# Symbol.Space+#,
 }

@@ -3,6 +3,7 @@
 
     Space <- " " : "\t",
     NewLine <- "\n",
+    % todo: Space* (Misc.Comment : NewLine : ";") Space* に変更,
     LineEnd <- Space* (Misc.Comment : NewLine : ";"),
     SimpleLineEnd <- Space* NewLine,
 }
@@ -19,5 +20,5 @@
 }
 
 [Keyword]{
-    Reserved <- "as" : "data" : "end" : "enum" : "impl" : "macro" : "mut" : "ref" : "struct" : "trait",
+    Reserved <- "as" : "data" : "end" : "enum" : "impl" : "mut" : "ref" : "struct" : "trait",
 }
