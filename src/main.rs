@@ -55,7 +55,8 @@ fn chesc_cmp(_subcmd_name: String, subcmd_options: std::collections::HashMap<Str
     };
 
     ref_dir_paths.push((*abs_main_src_path).to_str().unwrap().to_string());
-    let fcpeg_file_path = "src/fcpeg/syntax.fcpeg".to_string();
+    // todo: 環境変数 CHES_HOME の値を利用する
+    let fcpeg_file_path = "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/syntax.fcpeg".to_string();
     let output_file_path = "src/ches/test.chesc".to_string();
     let mut cmp = compiler::Compiler::new(input_paths.get(0).unwrap().clone(), ref_dir_paths, fcpeg_file_path, output_file_path, compiler::CompilerMode::CompiledChesc);
 
