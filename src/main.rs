@@ -1,89 +1,132 @@
-use rustnutlib::*;
-use rustnutc::compiler;
+use crate::fileman::*;
 
-fn main() {
-    let mut cmd_procs = cmd::CommandMap::new();
-    cmd_procs.insert("cmp".to_string(), chesc_cmp);
-    cmd::run_command("cmp", cmd_procs);
+use argh::*;
+
+use rustnutlib::*;
+use rustnutlib::console::*;
+
+use rustnutc::compiler::*;
+
+type ChescCommandResult = Result<(), ChescCommandError>;
+
+pub enum ChescCommandError {
+    Unknown {},
+    CompilerError { err: CompilerError },
+    FileManError { err: FileManError },
 }
 
-fn chesc_cmp(_subcmd_name: String, subcmd_options: std::collections::HashMap<String, Vec<String>>, cons: &mut console::Console) {
-    // println!("- command data -");
-    // println!("{}", subcmd_name);
-    // println!("{:?}", subcmd_options);
-
-    let start_time = std::time::Instant::now();
-
-    let show_details = subcmd_options.contains_key("-det");
-
-    let input_paths = match subcmd_options.get("-i") {
-        Some(v) => v,
-        None => {
-            cons.log(console::ConsoleLogData::new(console::ConsoleLogKind::Error, "{^chesc.err.6805}", vec![], vec![format!("{{^chesc.usage}}: {{^chesc.usage.specify_input_file}}")]), show_details);
-            return;
-        }
-    };
-
-    if input_paths.len() == 0 {
-        cons.log(console::ConsoleLogData::new(console::ConsoleLogKind::Error, "{^chesc.err.6805}", vec![], vec![format!("{{^chesc.usage}}: {{^chesc.usage.specify_input_file}}")]), show_details);
-        return;
+impl ConsoleLogger for ChescCommandError {
+    fn get_log(&self) -> ConsoleLog {
+        return match self {
+            ChescCommandError::Unknown {} => log!(Error, "unknown"),
+            ChescCommandError::CompilerError { err } => err.get_log(),
+            ChescCommandError::FileManError { err } => err.get_log(),
+        };
     }
+}
 
-    if input_paths.len() > 1 {
-        cons.log(console::ConsoleLogData::new(console::ConsoleLogKind::Error, "{^chesc.err.6805}", vec![], vec![format!("{{^chesc.help}}: {{^chesc.help.cannot_specify_multiple_files}}")]), show_details);
-        return;
+trait SubCommandProcessor {
+    fn proc(&self) -> ChescCommandResult;
+}
+
+/// chesc command
+#[derive(FromArgs, PartialEq)]
+struct TopLevelCommand {
+    #[argh(subcommand)]
+    subcommand: SubLevelCommand,
+}
+
+impl SubCommandProcessor for TopLevelCommand {
+    fn proc(&self) -> ChescCommandResult {
+        return self.subcommand.proc();
     }
+}
 
-    let mut ref_dir_paths: Vec<String> = match subcmd_options.get("-ref") {
-        Some(v) => v.clone(),
-        None => vec![],
-    };
+/// subcommands for chesc command
+#[derive(FromArgs, PartialEq)]
+#[argh(subcommand)]
+enum SubLevelCommand {
+    Cmp(CmpSubcommand),
+}
 
-    // メインソースファイルを持つディレクトリを参照先に指定する
-    let abs_main_src_path = match fileman::FileMan::get_parent_dir_path(&input_paths.get(0).unwrap()) {
-        Ok(v) => {
-            if v.is_none() {
-                cons.log(console::ConsoleLogData::new(console::ConsoleLogKind::Error, "{^chesc.err.2711}", vec![], vec![]), show_details);
-            }
+impl SubCommandProcessor for SubLevelCommand {
+    fn proc(&self) -> ChescCommandResult {
+        return match self {
+            SubLevelCommand::Cmp(subcommand) => subcommand.proc(),
+        };
+    }
+}
 
-            v.unwrap()
-        },
-        Err(e) => {
-            cons.log(e.get_log_data(), show_details);
+/// cmp subcommand
+#[derive(FromArgs, PartialEq)]
+#[argh(subcommand, name = "cmp")]
+struct CmpSubcommand {
+    /// input file paths
+    #[argh(option, short = 'i')]
+    input: String,
+
+    /// output file paths
+    #[argh(option, short = 'o')]
+    output: String,
+
+    /// reference file paths
+    #[argh(option, short = 'r')]
+    refer: Option<String>,
+}
+
+impl SubCommandProcessor for CmpSubcommand {
+    fn proc(&self) -> ChescCommandResult {
+        let start_time = std::time::Instant::now();
+        let mut ref_dir_paths = match &self.refer {
+            Some(v) => v.split(";").collect::<Vec<&str>>(),
+            None => vec![],
+        };
+
+        // メインソースファイルを持つディレクトリを参照先に指定する
+        let abs_main_src_path = match FileMan::get_parent_dir_path(&self.input) {
+            Ok(v) => v.unwrap(),
+            Err(e) => return Err(ChescCommandError::FileManError { err: e }),
+        };
+
+        ref_dir_paths.push(abs_main_src_path.to_str().unwrap());
+
+        // todo: 環境変数 CHES_HOME の値を利用する
+        let fcpeg_file_path = "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/syntax.fcpeg".to_string();
+
+        let mut cmp = Compiler::new(self.input.clone(), ref_dir_paths.iter().map(|e| e.to_string()).collect::<Vec<String>>(), fcpeg_file_path, self.output.clone(), CompilerMode::CompiledChesc);
+
+        match cmp.get_src_files() {
+            Ok(v) => v,
+            Err(e) => return Err(ChescCommandError::FileManError { err: e }),
+        };
+
+        match cmp.load_src_files() {
+            Ok(v) => v,
+            Err(e) => return Err(ChescCommandError::FileManError { err: e }),
+        };
+
+        match cmp.compile() {
+            Ok(v) => v,
+            Err(e) => return Err(ChescCommandError::CompilerError { err: e }),
+        };
+
+        let end_time = start_time.elapsed();
+        println!("Command process has finished in {} ms.", end_time.as_millis());
+        return Ok(());
+    }
+}
+
+fn main() {
+    let mut cons = match Console::load(None) {
+        Ok(v) => v,
+        Err(_) => {
+            println!("Failed to load console data.");
             return;
         },
     };
 
-    ref_dir_paths.push((*abs_main_src_path).to_str().unwrap().to_string());
-    // todo: 環境変数 CHES_HOME の値を利用する
-    let fcpeg_file_path = "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/syntax.fcpeg".to_string();
-    let output_file_path = "src/ches/test.chesc".to_string();
-    let mut cmp = compiler::Compiler::new(input_paths.get(0).unwrap().clone(), ref_dir_paths, fcpeg_file_path, output_file_path, compiler::CompilerMode::CompiledChesc);
-
-    match cmp.get_src_files() {
+    match argh::from_env::<TopLevelCommand>().proc() {
         Ok(()) => (),
-        Err(e) => {
-            cons.log(e.get_log_data(), show_details);
-            return;
-        }
-    };
-
-    match cmp.load_src_files() {
-        Ok(()) => (),
-        Err(e) => {
-            cons.log(e.get_log_data(), show_details);
-            return;
-        }
-    };
-
-    match cmp.compile() {
-        Ok(()) => (),
-        Err(e) => {
-            cons.log(e.get_log_data(), show_details);
-            return;
-        }
-    };
-
-    let end_time = start_time.elapsed();
-    println!("Command process has finished in {} ms.", end_time.as_millis());
+        Err(e) => cons.log(e.get_log(), true),
+    }
 }
