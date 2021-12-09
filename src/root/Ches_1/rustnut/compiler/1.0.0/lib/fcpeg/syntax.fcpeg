@@ -7,7 +7,7 @@
     + use FileItem,
     + use Misc.Symbol as Symbol,
 
-    Main <- Symbol.Space*# Symbol.LineEnd*# FileItem.Item? Symbol.Space*#,
+    Main <- Symbol.Space*# Symbol.LineEnd*# FileItem.Item? Symbol.Space*# "\z",
 }
 
 [FileItem]{
@@ -17,12 +17,15 @@
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Item <- Symbol.Space*# (Struct : Trait : Enum),
-    % note: 先頭の行終了を強制するため最初に LineEnd+ を置く,
-    Struct <- "struct"# Symbol.Space+# DataType.Type Symbol.LineEnd+# ((DataBlock.NormalBlock : ImplBlock.Block))*,
-    Trait <- "trait"# Symbol.Space+# DataType.Type Symbol.LineEnd+# ((DataBlock.NormalBlock : ImplBlock.Block))*,
-    Enum <- "enum"# Symbol.Space+# Misc.ID EnumTypeParameter? Symbol.LineEnd+# ((DataBlock.EnumBlock : ImplBlock.Block))*,
-    EnumTypeParameter <- Symbol.Space+# DataType.Type,
+    Item <- Symbol.Space*# (StructItem : TraitItem : EnumItem) ItemEnd#,
+    ItemEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
+
+    NormalFieldItem($Name) <- $Name Symbol.Space+# DataType.Type Symbol.LineEnd+# ((DataBlock.NormalBlock : ImplBlock.Block))*,
+    StructItem <- NormalFieldItem("struct"#),
+    TraitItem <- NormalFieldItem("trait"#),
+
+    EnumItem <- "enum"# Symbol.Space+# Misc.ID EnumTypeParameter? Symbol.LineEnd+# ((DataBlock.EnumBlock : ImplBlock.Block))*,
+    EnumItemTypeParameter <- Symbol.Space+# DataType.Type,
 }
 
 [DataBlock]{
@@ -45,20 +48,19 @@
     + use Method,
     + use Misc.Symbol as Symbol,
 
+    Block <- BlockStart Method.Method* BlockEnd,
     BlockStart <- Symbol.Space*# "impl"# Symbol.LineEnd+#,
     BlockEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
-
-    Block <- BlockStart Method.Method* BlockEnd,
 }
 
 [Method]{
     + use Expr.DataType as DataType,
+    + use Expr.Expr as Expr,
     + use Expr.Func as Func,
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
-    + use Stmt.Stmt as Stmt,
 
-    Method <- StartMethod Stmt.Stmt* EndMethod,
+    Method <- StartMethod (Symbol.Space*# Expr.GeneralExpr Symbol.Space* Symbol.LineEnd+#)* EndMethod,
     StartMethod <- Symbol.Space*# "fn"# Symbol.Space+# Func.Name Symbol.Space*# "("# Symbol.Space*# DefArgs? Symbol.Space*# ")"# Symbol.LineEnd+#,
     EndMethod <- Symbol.Space*# "end"# Symbol.LineEnd+#,
 

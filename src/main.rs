@@ -1,32 +1,39 @@
-use crate::fileman::*;
+use std::collections::*;
+use std::thread::spawn;
+
+use crate::file::*;
 
 use argh::*;
 
 use rustnutlib::*;
 use rustnutlib::console::*;
 
+use fcpeg::FCPEGError;
+
 use rustnutc::compiler::*;
 
-type ChescCommandResult = Result<(), ChescCommandError>;
+type ChescCommandResult<T> = Result<T, ChescCommandError>;
 
 pub enum ChescCommandError {
     Unknown {},
     CompilerError { err: CompilerError },
-    FileManError { err: FileManError },
+    FCPEGError { err: FCPEGError },
+    FileError { err: FileError },
 }
 
 impl ConsoleLogger for ChescCommandError {
     fn get_log(&self) -> ConsoleLog {
         return match self {
             ChescCommandError::Unknown {} => log!(Error, "unknown"),
+            ChescCommandError::FCPEGError { err } => err.get_log(),
             ChescCommandError::CompilerError { err } => err.get_log(),
-            ChescCommandError::FileManError { err } => err.get_log(),
+            ChescCommandError::FileError { err } => err.get_log(),
         };
     }
 }
 
 trait SubCommandProcessor {
-    fn proc(&self) -> ChescCommandResult;
+    fn proc(&self) -> ChescCommandResult<()>;
 }
 
 /// chesc command
@@ -37,7 +44,7 @@ struct TopLevelCommand {
 }
 
 impl SubCommandProcessor for TopLevelCommand {
-    fn proc(&self) -> ChescCommandResult {
+    fn proc(&self) -> ChescCommandResult<()> {
         return self.subcommand.proc();
     }
 }
@@ -50,7 +57,7 @@ enum SubLevelCommand {
 }
 
 impl SubCommandProcessor for SubLevelCommand {
-    fn proc(&self) -> ChescCommandResult {
+    fn proc(&self) -> ChescCommandResult<()> {
         return match self {
             SubLevelCommand::Cmp(subcommand) => subcommand.proc(),
         };
@@ -70,14 +77,15 @@ struct CmpSubcommand {
     output: String,
 
     /// reference file paths
-    #[argh(option, short = 'r')]
-    refer: Option<String>,
+    #[argh(option, short = 'l')]
+    lib: Option<String>,
 }
 
 impl SubCommandProcessor for CmpSubcommand {
-    fn proc(&self) -> ChescCommandResult {
+    fn proc(&self) -> ChescCommandResult<()> {
         let start_time = std::time::Instant::now();
-        let mut ref_dir_paths = match &self.refer {
+
+        let mut lib_dir_paths = match &self.lib {
             Some(v) => v.split(";").collect::<Vec<&str>>(),
             None => vec![],
         };
@@ -85,27 +93,23 @@ impl SubCommandProcessor for CmpSubcommand {
         // メインソースファイルを持つディレクトリを参照先に指定する
         let abs_main_src_path = match FileMan::get_parent_dir_path(&self.input) {
             Ok(v) => v.unwrap(),
-            Err(e) => return Err(ChescCommandError::FileManError { err: e }),
+            Err(e) => return Err(ChescCommandError::FileError { err: e }),
         };
 
-        ref_dir_paths.push(abs_main_src_path.to_str().unwrap());
+        lib_dir_paths.push(abs_main_src_path.to_str().unwrap());
 
         // todo: 環境変数 CHES_HOME の値を利用する
         let fcpeg_file_path = "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/syntax.fcpeg".to_string();
+        let mut lib_fcpeg_file_map = HashMap::<String, String>::new();
+        lib_fcpeg_file_map.insert("Expr".to_string(), "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/expr.fcpeg".to_string());
+        lib_fcpeg_file_map.insert("Misc".to_string(), "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/misc.fcpeg".to_string());
 
-        let mut cmp = Compiler::new(self.input.clone(), ref_dir_paths.iter().map(|e| e.to_string()).collect::<Vec<String>>(), fcpeg_file_path, self.output.clone(), CompilerMode::CompiledChesc);
-
-        match cmp.get_src_files() {
+        let mut cmp = match Compiler::load(fcpeg_file_path, lib_fcpeg_file_map) {
             Ok(v) => v,
-            Err(e) => return Err(ChescCommandError::FileManError { err: e }),
+            Err(e) => return Err(ChescCommandError::FCPEGError { err: e }),
         };
 
-        match cmp.load_src_files() {
-            Ok(v) => v,
-            Err(e) => return Err(ChescCommandError::FileManError { err: e }),
-        };
-
-        match cmp.compile() {
+        match cmp.compile_into_bytecode(self.input.clone()) {
             Ok(v) => v,
             Err(e) => return Err(ChescCommandError::CompilerError { err: e }),
         };
@@ -117,16 +121,20 @@ impl SubCommandProcessor for CmpSubcommand {
 }
 
 fn main() {
-    let mut cons = match Console::load(None) {
-        Ok(v) => v,
-        Err(_) => {
-            println!("Failed to load console data.");
-            return;
-        },
+    let proc = || {
+        let mut cons = match Console::load(Some("src/root/Ches_1/rustnut/compiler/1.0.0/lib/lang/en-us.lang".to_string())) {
+            Ok(v) => v,
+            Err(_) => {
+                println!("Failed to load console data.");
+                return;
+            },
+        };
+
+        match argh::from_env::<TopLevelCommand>().proc() {
+            Ok(()) => (),
+            Err(e) => cons.log(e.get_log(), true),
+        }
     };
 
-    match argh::from_env::<TopLevelCommand>().proc() {
-        Ok(()) => (),
-        Err(e) => cons.log(e.get_log(), true),
-    }
+    spawn(proc).join().unwrap();
 }

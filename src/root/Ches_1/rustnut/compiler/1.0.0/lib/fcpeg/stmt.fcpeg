@@ -1,7 +1,0 @@
-[Stmt]{
-    + use Misc.Symbol as Symbol,
-    + use Expr.Func as Func,
-
-    Stmt <- Symbol.Space*# StmtElem Symbol.LineEnd+#,
-    StmtElem <- Func.Call,
-}
