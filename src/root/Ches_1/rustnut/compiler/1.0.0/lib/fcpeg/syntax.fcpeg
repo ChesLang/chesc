@@ -7,63 +7,57 @@
     + use FileItem,
     + use Misc.Symbol as Symbol,
 
-    Main <- Symbol.Space*# Symbol.LineEnd*# FileItem.Item? Symbol.Space*# "\z",
+    Main <- Symbol.Space*# Symbol.LineEnd*# FileItem.Item*## Symbol.Space*# "\z"#,
 }
 
 [FileItem]{
-    + use DataBlock,
+    + use Block,
     + use Expr.DataType as DataType,
-    + use ImplBlock,
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Item <- Symbol.Space*# (StructItem : TraitItem : EnumItem) ItemEnd#,
-    ItemEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
+    Item <- Symbol.Space*# (StructItem : TraitItem : EnumItem)## Block.BlockEnd#,
 
-    NormalFieldItem($Name) <- $Name Symbol.Space+# DataType.Type Symbol.LineEnd+# ((DataBlock.NormalBlock : ImplBlock.Block))*,
-    StructItem <- NormalFieldItem("struct"#),
-    TraitItem <- NormalFieldItem("trait"#),
+    NormalFieldItem($Name) <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## $Name# Symbol.Space+# DataType.Type Symbol.LineEnd+# Block.BlockList,
+    StructItem <- NormalFieldItem("struct")##,
+    TraitItem <- NormalFieldItem("trait")##,
 
-    EnumItem <- "enum"# Symbol.Space+# Misc.ID EnumTypeParameter? Symbol.LineEnd+# ((DataBlock.EnumBlock : ImplBlock.Block))*,
+    EnumItem <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## "enum"# Symbol.Space+# Misc.ID EnumItemTypeParameter?## Symbol.LineEnd+# Block.BlockList,
     EnumItemTypeParameter <- Symbol.Space+# DataType.Type,
 }
 
-[DataBlock]{
+[Block]{
+    + use Block,
     + use Expr.DataType as DataType,
     + use Expr.Expr as Expr,
+    + use Method,
     + use Misc.Symbol as Symbol,
     + use Misc.Misc as Misc,
 
-    BlockStart <- Symbol.Space*# "data"# Symbol.LineEnd+#,
     BlockEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
 
-    NormalBlock <- BlockStart NormalFieldDef* BlockEnd,
-    EnumBlock <- BlockStart EnumFieldDef* BlockEnd,
+    BlockList <- (DataBlock<StructFieldDef> : ImplBlock)*##,
+    DataBlock<$FieldDef> <- Symbol.Space*# "data"# Symbol.LineEnd+# $FieldDef* BlockEnd#,
 
-    NormalFieldDef <- Symbol.Space*# Misc.ID Symbol.Space+# DataType.Type Symbol.LineEnd+#,
-    EnumFieldDef <- Symbol.Space*# Misc.ID (Symbol.Space*# "=" Symbol.Space*# Expr.GeneralExpr)? Symbol.LineEnd+#,
-}
+    StructFieldDef <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Misc.ID Symbol.Space+# DataType.Type Symbol.LineEnd+#,
+    EnumFieldDef <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Misc.ID (Symbol.Space*# "=" Symbol.Space*# Expr.GeneralExpr)? Symbol.LineEnd+#,
 
-[ImplBlock]{
-    + use Method,
-    + use Misc.Symbol as Symbol,
-
-    Block <- BlockStart Method.Method* BlockEnd,
-    BlockStart <- Symbol.Space*# "impl"# Symbol.LineEnd+#,
-    BlockEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
+    ImplBlock <- Symbol.Space*# "impl"# BlockTypeParameter?## Symbol.LineEnd+# (Method.MethodDef*)#MethodDefList Block.BlockEnd#,
+    BlockTypeParameter <- Symbol.Space+# DataType.Type,
 }
 
 [Method]{
+    + use Block,
     + use Expr.DataType as DataType,
     + use Expr.Expr as Expr,
     + use Expr.Func as Func,
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Method <- StartMethod (Symbol.Space*# Expr.GeneralExpr Symbol.Space* Symbol.LineEnd+#)* EndMethod,
-    StartMethod <- Symbol.Space*# "fn"# Symbol.Space+# Func.Name Symbol.Space*# "("# Symbol.Space*# DefArgs? Symbol.Space*# ")"# Symbol.LineEnd+#,
-    EndMethod <- Symbol.Space*# "end"# Symbol.LineEnd+#,
+    MethodDef <- MethodDefStart## (Symbol.Space*# Expr.GeneralExpr Symbol.Space* Symbol.LineEnd+#)*#ExpressionList Block.BlockEnd#,
+    MethodDefStart <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Func.DefAbs? "fn"# Symbol.Space+# Func.Name Symbol.Space*# "("# DefArgDyn? Symbol.Space*# DefArgs? Symbol.Space*# ")"# Symbol.Space*# DataType.Type? Symbol.LineEnd+#,
 
-    DefArgs <- DefArgElem (Symbol.Space*# ","# Symbol.Space*# DefArgElem)*,
+    DefArgs <- DefArgElem (Symbol.Space*# ","# Symbol.Space*# DefArgElem)*##,
+    DefArgDyn <- Func.ArgMut? "self"# Symbol.Space*# "|"# Symbol.Space*#,
     DefArgElem <- Func.ArgMut? Func.ArgRef? Misc.ID Symbol.Space+# DataType.Type,
 }

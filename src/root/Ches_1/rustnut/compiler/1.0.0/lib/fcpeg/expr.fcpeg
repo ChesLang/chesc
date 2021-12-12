@@ -9,13 +9,13 @@
     + use Misc.Symbol as Symbol,
 
     GeneralExpr <- LogicExpr.LogicExprChain : CompExpr.CompExprChain : OpeExpr.OpeExprChain : ExprChain,
-    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : Func.Call : DataType.GenericsType : Literal.Literal : Misc.ID,
+    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : Func.Call : DataType.GenericsType : Literal.Literal : Misc.ID : Func.Name,
 
-    ExprChain <- Negative? (ParenedExprChain : Expr) ExprChainFollower* TypeCast?,
+    ExprChain <- Negative? ((ParenedExprChain : Expr)## ExprChainFollower*##)#ExpressionList TypeCast?,
     ParenedExprChain <- "("# Symbol.Space*# ExprChain Symbol.Space*# ")"#,
-    ExprChainFollower <- Symbol.Space*# "."# Symbol.Space*# !((DataType.GenericsType : Literal.Literal)) Expr,
+    ExprChainFollower <- Symbol.Space*# "."# Symbol.Space*# !(DataType.GenericsType : Literal.Literal) Expr,
 
-    Negative <- "!" Symbol.Space*#,
+    Negative <- "!"# Symbol.Space*#,
     TypeCast <- Symbol.Space*# "as"# Symbol.Space+# DataType.Type,
 }
 
@@ -52,7 +52,7 @@
     + use OpeExpr,
     + use Misc.Symbol as Symbol,
 
-    LogicExprChain <- LogicExprElem LogicExprChainFollower+,
+    LogicExprChain <- LogicExprElem LogicExprChainFollower+##,
     LogicExprChainFollower <- Symbol.Space*# LogicOpeSymbol Symbol.Space*# LogicExprElem,
     LogicExprElem <- CompExpr.CompExprChain : OpeExpr.OpeExprChain : Expr.ExprChain,
 
@@ -65,14 +65,12 @@
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Type <- GenericsType : SimpleTypeChain,
-    % note: ジェネリクス非対応の通常の型,
-    SimpleTypeChain <- Misc.ID SimpleTypeChainFollower*,
-    SimpleTypeChainFollower <- Symbol.Space*# "." Symbol.Space*# Misc.ID, 
-    GenericsType <- SimpleTypeChain Symbol.Space*# GenericsTypeBody,
-    GenericsTypeBody <- "<"# Symbol.Space*# GenericsTypeBodyElem Symbol.Space*# (","# Symbol.Space*# GenericsTypeBodyElem)* Symbol.Space*# ">"#,
-    GenericsTypeBodyElem <- GenericsType : SimpleTypeChain,
+    Type <- GenericsType : BuiltInType : Misc.IDChain,
 
+    GenericsType <- Misc.IDChain Symbol.Space*# GenericsTypeBody,
+    GenericsTypeBody <- "<"# Symbol.Space*# Type Symbol.Space*# (","# Symbol.Space*# Type)*## Symbol.Space*# ">"#,
+
+    BuiltInType <- "bool" : "char" : "str" : BuiltInNumType##,
     BuiltInNumType <- "s8" : "u8" : "s16" : "s16" : "s32" : "u32" : "s64" : "u64" : "f32" : "f64",
 }
 
@@ -93,12 +91,14 @@
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    Name <- (Misc.ID Symbol.Space*# "." Symbol.Space*#)* "@"? Misc.ID,
+    Name <- ("@"#)?#SpecialFuncPrefix Misc.ID,
 
     Call <- Name Symbol.Space*# DataType.GenericsTypeBody? Symbol.Space*# "("# Symbol.Space*# CallArgs? Symbol.Space*# ")"#,
-    CallArgs <- CallArgElem (Symbol.Space*# ","# Symbol.Space*# CallArgElem)*,
-    CallArgElem <- ArgMut? ArgRef? Expr.ExprChain,
+    CallArgs <- CallArgElem (Symbol.Space*# ","# Symbol.Space*# CallArgElem)*##,
+    CallArgElem <- ArgMut? ArgRef? Expr.GeneralExpr,
 
     ArgMut <- "mut"# Symbol.Space+#,
     ArgRef <- "ref"# Symbol.Space+#,
+
+    DefAbs <- "abs"# Symbol.Space+#,
 }
