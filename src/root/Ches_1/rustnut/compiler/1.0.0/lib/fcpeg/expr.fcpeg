@@ -2,6 +2,7 @@
     + use CompExpr,
     + use DataType,
     + use Func,
+    + use If,
     + use Literal,
     + use LogicExpr,
     + use OpeExpr,
@@ -9,11 +10,11 @@
     + use Misc.Symbol as Symbol,
 
     GeneralExpr <- LogicExpr.LogicExprChain : CompExpr.CompExprChain : OpeExpr.OpeExprChain : ExprChain,
-    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : Func.Call : DataType.GenericsType : Literal.Literal : Misc.ID : Func.Name,
+    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : If.If : Func.Call : DataType.GenericsType : Misc.ID : Literal.Literal : DataType.BuiltInType : Func.Name,
 
-    ExprChain <- Negative? ((ParenedExprChain : Expr)## ExprChainFollower*##)#ExpressionList TypeCast?,
+    ExprChain <- Negative? ((ParenedExprChain : Expr)## ExprChainFollower*##)#ExprList TypeCast?,
     ParenedExprChain <- "("# Symbol.Space*# ExprChain Symbol.Space*# ")"#,
-    ExprChainFollower <- Symbol.Space*# "."# Symbol.Space*# !(DataType.GenericsType : Literal.Literal) Expr,
+    ExprChainFollower <- Symbol.Space*# "."# Symbol.Space*# !(Literal.Int : Literal.Decimal) Expr,
 
     Negative <- "!"# Symbol.Space*#,
     TypeCast <- Symbol.Space*# "as"# Symbol.Space+# DataType.Type,
@@ -37,7 +38,7 @@
     + use Misc.Symbol as Symbol,
     + use OpeExpr,
 
-    CompExprChain <- CompExprElem CompExprChainFollower+,
+    CompExprChain <- CompExprElem CompExprChainFollower+##,
     CompExprChainFollower <- Symbol.Space*# CompOpeSymbol Symbol.Space*# CompExprElem,
     CompExprElem <- OpeExpr.OpeExprChain : Expr.ExprChain,
 
@@ -70,19 +71,23 @@
     GenericsType <- Misc.IDChain Symbol.Space*# GenericsTypeBody,
     GenericsTypeBody <- "<"# Symbol.Space*# Type Symbol.Space*# (","# Symbol.Space*# Type)*## Symbol.Space*# ">"#,
 
-    BuiltInType <- "bool" : "char" : "str" : BuiltInNumType##,
+    BuiltInType <- "bool" : BuiltInNumType## : "char" : "str",
     BuiltInNumType <- "s8" : "u8" : "s16" : "s16" : "s32" : "u32" : "s64" : "u64" : "f32" : "f64",
 }
 
 [Literal]{
     + use DataType,
 
-    Literal <- Bool : Num : Char : Str,
+    Literal <- Bool : Decimal : Int : Char : Str : RawStr,
     Bool <- "true" : "false",
-    Num <- [0-9]+ ("." [0-9]+)? DataType.BuiltInNumType?,
-    EscSeq <- "\\" ("\\" : "0" : "'" : "\"" : "b" : "n" : "u"),
-    Char <- "'"# (!"\\\"" EscSeq : !"'" .) "'"#,
-    Str <- "\""# ((!"\\'" EscSeq : !(("\\" : "\"")) .))* "\""# : "r" "\""# ((!"\"" .))* "\""#,
+    % note: #Dec 内に ""# を入れないとノード化されないため残しておく,
+    Int <- (""# (JOIN("-"? "0b"# [0-1]+))#Bin : ""# (JOIN("-"? "0o"# [0-7]+))#Oct : ""# (JOIN("-"? "0x"# [0-9a-f]+))#Hex : ""# (JOIN("-"? [0-9]+))#Dec)## DataType.BuiltInNumType?,
+    IntBasePrefix <- "0b" : "0o" : "0x",
+    Decimal <- (JOIN("-"? [0-9]+ "." [0-9]+))#Num DataType.BuiltInNumType?,
+    EscSeq <- "\\"# ("\\" : "0" : "'" : "\"" : "b" : "n" : "t" : JOIN("u" [a-z0-9]{4,4}))##,
+    Char <- "'"# (!"\\\"" EscSeq : !"'" .)## "'"#,
+    Str <- "\""# ((!"\\'" EscSeq : !("\\" : "\"") .))*## "\""#,
+    RawStr <- "r"# "\""# ((!"\"" .))*## "\""#,
 }
 
 [Func]{
@@ -101,4 +106,23 @@
     ArgRef <- "ref"# Symbol.Space+#,
 
     DefAbs <- "abs"# Symbol.Space+#,
+}
+
+[If]{
+    + use Expr,
+    + use Misc.Symbol as Symbol,
+
+    % note: 単数行単数式 : 複数行単数式 : 複数行複数式 (ブロック),
+    If <- Inline<Symbol.Space*#> : Inline<Symbol.LineEnd+#> : Block,
+    % If <- SingleLine## : MultipleLine## : Block##,
+
+    Inline<$Div> <- InlineIf<"if">#IfClause (($Div InlineIf<"elif">#ElIfClause)*## $Div InlineElse?#ElseClause)?## $Div "end"#,
+    InlineIf<$IfKind> <- $IfKind# Symbol.Space*# (Expr.GeneralExpr)#Cond Symbol.Space*# "then"# Symbol.Space*# (Expr.GeneralExpr)#Proc,
+    InlineElse <- "else"# Symbol.Space*# (Expr.GeneralExpr)#Proc,
+
+    Block <- BlockIf#IfClause ((Symbol.LineEnd+# BlockElIf#ElIfClause)*## (Symbol.LineEnd+# BlockElse#ElseClause)?##)?## Symbol.LineEnd+# "end"#,
+    % todo: ジェネリクス引数修正後、書き直す,
+    BlockIf <- "if"# Symbol.Space*# (Expr.GeneralExpr)#Cond ((Symbol.LineEnd+# Expr.GeneralExpr)*##)#ProcList,
+    BlockElIf <- "elif"# Symbol.Space*# (Expr.GeneralExpr)#Cond ((Symbol.LineEnd+# Expr.GeneralExpr)*##)#ProcList,
+    BlockElse <- "else"# ((Symbol.LineEnd+# Expr.GeneralExpr)*##)#ProcList,
 }

@@ -18,12 +18,14 @@
 
     Item <- Symbol.Space*# (StructItem : TraitItem : EnumItem)## Block.BlockEnd#,
 
-    NormalFieldItem($Name) <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## $Name# Symbol.Space+# DataType.Type Symbol.LineEnd+# Block.BlockList,
-    StructItem <- NormalFieldItem("struct")##,
-    TraitItem <- NormalFieldItem("trait")##,
+    StructKindItem($Name) <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## $Name# Symbol.Space+# DataType.Type SimpleImpl? Symbol.LineEnd+# Block.BlockList<Block.StructFieldDef>,
+    StructItem <- StructKindItem("struct")##,
+    TraitItem <- StructKindItem("trait")##,
 
-    EnumItem <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## "enum"# Symbol.Space+# Misc.ID EnumItemTypeParameter?## Symbol.LineEnd+# Block.BlockList,
+    EnumItem <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## "enum"# Symbol.Space+# DataType.Type EnumItemTypeParameter? SimpleImpl? Symbol.LineEnd+# Block.BlockList<Block.EnumFieldDef>,
     EnumItemTypeParameter <- Symbol.Space+# DataType.Type,
+
+    SimpleImpl <- Symbol.Space*# ":"# Symbol.Space*# DataType.Type (Symbol.Space*# ","# Symbol.Space*# DataType.Type)*##,
 }
 
 [Block]{
@@ -36,11 +38,11 @@
 
     BlockEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
 
-    BlockList <- (DataBlock<StructFieldDef> : ImplBlock)*##,
+    BlockList<$FieldDef> <- (DataBlock<$FieldDef> : ImplBlock)*##,
     DataBlock<$FieldDef> <- Symbol.Space*# "data"# Symbol.LineEnd+# $FieldDef* BlockEnd#,
 
     StructFieldDef <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Misc.ID Symbol.Space+# DataType.Type Symbol.LineEnd+#,
-    EnumFieldDef <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Misc.ID (Symbol.Space*# "=" Symbol.Space*# Expr.GeneralExpr)? Symbol.LineEnd+#,
+    EnumFieldDef <- Symbol.Space*# Misc.ID (Symbol.Space*# "="# Symbol.Space*# Expr.GeneralExpr)?## Symbol.LineEnd+#,
 
     ImplBlock <- Symbol.Space*# "impl"# BlockTypeParameter?## Symbol.LineEnd+# (Method.MethodDef*)#MethodDefList Block.BlockEnd#,
     BlockTypeParameter <- Symbol.Space+# DataType.Type,
@@ -54,7 +56,7 @@
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    MethodDef <- MethodDefStart## (Symbol.Space*# Expr.GeneralExpr Symbol.Space* Symbol.LineEnd+#)*#ExpressionList Block.BlockEnd#,
+    MethodDef <- MethodDefStart## (Symbol.Space*# Expr.GeneralExpr Symbol.Space* Symbol.LineEnd+#)*#ExprList Block.BlockEnd#,
     MethodDefStart <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Func.DefAbs? "fn"# Symbol.Space+# Func.Name Symbol.Space*# "("# DefArgDyn? Symbol.Space*# DefArgs? Symbol.Space*# ")"# Symbol.Space*# DataType.Type? Symbol.LineEnd+#,
 
     DefArgs <- DefArgElem (Symbol.Space*# ","# Symbol.Space*# DefArgElem)*##,

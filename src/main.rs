@@ -109,10 +109,12 @@ impl SubCommandProcessor for CmpSubcommand {
             Err(e) => return Err(ChescCommandError::FCPEGError { err: e }),
         };
 
-        match cmp.compile_into_bytecode(self.input.clone()) {
+        let bytes = match cmp.compile_into_bytecode(self.input.clone()) {
             Ok(v) => v,
             Err(e) => return Err(ChescCommandError::CompilerError { err: e }),
         };
+
+        FileMan::write_all_bytes(&self.output, &bytes).unwrap();
 
         let end_time = start_time.elapsed();
         println!("Command process has finished in {} ms.", end_time.as_millis());
