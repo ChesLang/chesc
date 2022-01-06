@@ -8,9 +8,10 @@
     + use OpeExpr,
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
+    + use Var,
 
     GeneralExpr <- LogicExpr.LogicExprChain : CompExpr.CompExprChain : OpeExpr.OpeExprChain : ExprChain,
-    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : If.If : Func.Call : DataType.GenericsType : Misc.ID : Literal.Literal : DataType.BuiltInType : Func.Name,
+    Expr <- LogicExpr.ParenedLogicExprChain : CompExpr.ParenedCompExprChain : OpeExpr.ParenedOpeExprChain : Var.Sub : Var.Init : Var.Def : If.If : Func.Call : DataType.GenericsType : Misc.ID : Literal.Literal : DataType.BuiltInType : Func.Name,
 
     ExprChain <- Negative? ((ParenedExprChain : Expr)## ExprChainFollower*##)#ExprList TypeCast?,
     ParenedExprChain <- "("# Symbol.Space*# ExprChain Symbol.Space*# ")"#,
@@ -106,6 +107,17 @@
     ArgRef <- "ref"# Symbol.Space+#,
 
     DefAbs <- "abs"# Symbol.Space+#,
+}
+
+[Var]{
+    + use Expr,
+    + use Misc.Misc as Misc,
+    + use Misc.Symbol as Symbol,
+
+    Def <- "let"# Symbol.Space+# Misc.ID,
+    Init <- Def## Symbol.Space*# "="# Symbol.Space*# Expr.GeneralExpr,
+    % fix: 左項で括弧などに対応,
+    Sub <- Misc.IDChain Symbol.Space*# "="# Symbol.Space*# Expr.GeneralExpr,
 }
 
 [If]{

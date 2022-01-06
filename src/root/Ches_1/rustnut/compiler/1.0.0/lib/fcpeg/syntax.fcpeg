@@ -56,7 +56,7 @@
     + use Misc.Misc as Misc,
     + use Misc.Symbol as Symbol,
 
-    MethodDef <- MethodDefStart## (Symbol.Space*# Expr.GeneralExpr Symbol.Space* Symbol.LineEnd+#)*#ExprList Block.BlockEnd#,
+    MethodDef <- MethodDefStart## (Symbol.Space*# Expr.GeneralExpr Symbol.Space*# Symbol.LineEnd+#)*#ExprList Block.BlockEnd#,
     MethodDefStart <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Func.DefAbs? "fn"# Symbol.Space+# Func.Name Symbol.Space*# "("# DefArgDyn? Symbol.Space*# DefArgs? Symbol.Space*# ")"# Symbol.Space*# DataType.Type? Symbol.LineEnd+#,
 
     DefArgs <- DefArgElem (Symbol.Space*# ","# Symbol.Space*# DefArgElem)*##,
