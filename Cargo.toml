@@ -10,4 +10,4 @@ edition = "2018"
 argh = "0.1"
 fcpeg = { path = "../../FunCobal-family/fcpeg/impl/rust/fcpeg" }
 rustnutc = { path = "../rustnutc" }
-rustnutlib = { path = "../rustnutlib" }
+cons-util = { path = "../cons-util" }

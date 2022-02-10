@@ -1,73 +1,33 @@
+use std::cell::RefCell;
 use std::collections::*;
+use std::rc::Rc;
 use std::thread::spawn;
-
-use crate::file::*;
+use std::time::Instant;
 
 use argh::*;
 
-use rustnutlib::*;
-use rustnutlib::console::*;
+use cons_util::cons::*;
+use cons_util::file::*;
 
-use fcpeg::FCPEGError;
+use rustnutc::cmp::*;
 
-use rustnutc::compiler::*;
+fn main() {
+    let cmd: TopLevelCommand = argh::from_env();
+    let cons = Console::new("ja".to_string(), ConsoleLogLimit::NoLimit);
 
-type ChescCommandResult<T> = Result<T, ChescCommandError>;
-
-pub enum ChescCommandError {
-    Unknown {},
-    CompilerError { err: CompilerError },
-    FCPEGError { err: FCPEGError },
-    FileError { err: FileError },
-}
-
-impl ConsoleLogger for ChescCommandError {
-    fn get_log(&self) -> ConsoleLog {
-        return match self {
-            ChescCommandError::Unknown {} => log!(Error, "unknown"),
-            ChescCommandError::FCPEGError { err } => err.get_log(),
-            ChescCommandError::CompilerError { err } => err.get_log(),
-            ChescCommandError::FileError { err } => err.get_log(),
-        };
+    match cmd.subcmd {
+        Subcommand::Compile(subcmd) => spawn(move || subcmd.proc(cons)).join().unwrap(),
     }
 }
 
 trait SubCommandProcessor {
-    fn proc(&self) -> ChescCommandResult<()>;
-}
-
-/// chesc command
-#[derive(FromArgs, PartialEq)]
-struct TopLevelCommand {
-    #[argh(subcommand)]
-    subcommand: SubLevelCommand,
-}
-
-impl SubCommandProcessor for TopLevelCommand {
-    fn proc(&self) -> ChescCommandResult<()> {
-        return self.subcommand.proc();
-    }
-}
-
-/// subcommands for chesc command
-#[derive(FromArgs, PartialEq)]
-#[argh(subcommand)]
-enum SubLevelCommand {
-    Cmp(CmpSubcommand),
-}
-
-impl SubCommandProcessor for SubLevelCommand {
-    fn proc(&self) -> ChescCommandResult<()> {
-        return match self {
-            SubLevelCommand::Cmp(subcommand) => subcommand.proc(),
-        };
-    }
+    fn proc(&self, cons: Console);
 }
 
 /// cmp subcommand
-#[derive(FromArgs, PartialEq)]
+#[derive(Clone, FromArgs, PartialEq)]
 #[argh(subcommand, name = "cmp")]
-struct CmpSubcommand {
+struct CompileSubcommand {
     /// input file paths
     #[argh(option, short = 'i')]
     input: String,
@@ -81,9 +41,9 @@ struct CmpSubcommand {
     lib: Option<String>,
 }
 
-impl SubCommandProcessor for CmpSubcommand {
-    fn proc(&self) -> ChescCommandResult<()> {
-        let start_time = std::time::Instant::now();
+impl CompileSubcommand {
+    fn compile(&self, cons: Rc<RefCell<Console>>) -> ConsoleResult<()> {
+        let start_time = Instant::now();
 
         let mut lib_dir_paths = match &self.lib {
             Some(v) => v.split(";").collect::<Vec<&str>>(),
@@ -91,9 +51,12 @@ impl SubCommandProcessor for CmpSubcommand {
         };
 
         // メインソースファイルを持つディレクトリを参照先に指定する
-        let abs_main_src_path = match FileMan::get_parent_dir_path(&self.input) {
+        let abs_main_src_path = match FileMan::parent_dir(&self.input) {
             Ok(v) => v.unwrap(),
-            Err(e) => return Err(ChescCommandError::FileError { err: e }),
+            Err(e) => {
+                cons.borrow_mut().append_log(e.get_log());
+                return Err(());
+            },
         };
 
         lib_dir_paths.push(abs_main_src_path.to_str().unwrap());
@@ -104,17 +67,8 @@ impl SubCommandProcessor for CmpSubcommand {
         lib_fcpeg_file_map.insert("Expr".to_string(), "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/expr.fcpeg".to_string());
         lib_fcpeg_file_map.insert("Misc".to_string(), "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/misc.fcpeg".to_string());
 
-        let mut cmp = match Compiler::load(fcpeg_file_path, lib_fcpeg_file_map) {
-            Ok(v) => v,
-            Err(e) => return Err(ChescCommandError::FCPEGError { err: e }),
-        };
-
-        let bytes = match cmp.compile_into_bytecode(self.input.clone()) {
-            Ok(v) => v,
-            Err(e) => return Err(ChescCommandError::CompilerError { err: e }),
-        };
-
-        FileMan::write_all_bytes(&self.output, &bytes).unwrap();
+        let mut cmp = Compiler::load(cons.clone(), fcpeg_file_path, lib_fcpeg_file_map)?;
+        cmp.compile(self.input.clone(), CompilerMode::Executable)?;
 
         let end_time = start_time.elapsed();
         println!("Command process has finished in {} ms.", end_time.as_millis());
@@ -122,21 +76,29 @@ impl SubCommandProcessor for CmpSubcommand {
     }
 }
 
-fn main() {
-    let proc = || {
-        let mut cons = match Console::load(Some("src/root/Ches_1/rustnut/compiler/1.0.0/lib/lang/en-us.lang".to_string())) {
-            Ok(v) => v,
-            Err(_) => {
-                println!("Failed to load console data.");
-                return;
-            },
-        };
+impl SubCommandProcessor for CompileSubcommand {
+    fn proc(&self, cons: Console) {
+        let cons_ptr = Rc::new(RefCell::new(cons));
 
-        match argh::from_env::<TopLevelCommand>().proc() {
+        match self.compile(cons_ptr.clone()) {
             Ok(()) => (),
-            Err(e) => cons.log(e.get_log(), true),
-        }
-    };
+            Err(()) => {
+                cons_ptr.borrow().print_all();
+                return;
+            }
+        };
+    }
+}
 
-    spawn(proc).join().unwrap();
+/// cmp command
+#[derive(Clone, FromArgs, PartialEq)]
+struct TopLevelCommand {
+    #[argh(subcommand)]
+    subcmd: Subcommand,
+}
+
+#[derive(Clone, FromArgs, PartialEq)]
+#[argh(subcommand)]
+enum Subcommand {
+    Compile(CompileSubcommand),
 }
