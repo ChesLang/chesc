@@ -6,8 +6,8 @@
     + use Literal,
     + use LogicExpr,
     + use OpeExpr,
-    + use Misc.Misc as Misc,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Misc,
+    + use Misc.Symbol,
     + use Var,
 
     GeneralExpr <- LogicExpr.LogicExprChain : CompExpr.CompExprChain : OpeExpr.OpeExprChain : ExprChain,
@@ -23,7 +23,7 @@
 
 [OpeExpr]{
     + use Expr,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Symbol,
 
     OpeExprChain <- OpeExprElem OpeExprChainFollower+,
     OpeExprChainFollower <- Symbol.Space*# OpeSymbol Symbol.Space*# OpeExprElem,
@@ -36,7 +36,7 @@
 
 [CompExpr]{
     + use Expr,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Symbol,
     + use OpeExpr,
 
     CompExprChain <- CompExprElem CompExprChainFollower+##,
@@ -52,7 +52,7 @@
     + use CompExpr,
     + use Expr,
     + use OpeExpr,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Symbol,
 
     LogicExprChain <- LogicExprElem LogicExprChainFollower+##,
     LogicExprChainFollower <- Symbol.Space*# LogicOpeSymbol Symbol.Space*# LogicExprElem,
@@ -64,8 +64,8 @@
 }
 
 [DataType]{
-    + use Misc.Misc as Misc,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Misc,
+    + use Misc.Symbol,
 
     Type <- GenericsType : BuiltInType : Misc.IDChain,
 
@@ -85,7 +85,7 @@
     Int <- (""# (JOIN("-"? "0b"# [0-1]+))#Bin : ""# (JOIN("-"? "0o"# [0-7]+))#Oct : ""# (JOIN("-"? "0x"# [0-9a-f]+))#Hex : ""# (JOIN("-"? [0-9]+))#Dec)## DataType.BuiltInNumType?,
     IntBasePrefix <- "0b" : "0o" : "0x",
     Decimal <- (JOIN("-"? [0-9]+ "." [0-9]+))#Num DataType.BuiltInNumType?,
-    EscSeq <- "\\"# ("\\" : "0" : "'" : "\"" : "b" : "n" : "t" : JOIN("u" [a-z0-9]{4,4}))##,
+    EscSeq <- "\\"# ("\\" : "0" : "'" : "\"" : "b" : "n" : "t" : JOIN("u" [a-z0-9]{4}))##,
     Char <- "'"# (!"\\\"" EscSeq : !"'" .)## "'"#,
     Str <- "\""# ((!"\\'" EscSeq : !("\\" : "\"") .))*## "\""#,
     RawStr <- "r"# "\""# ((!"\"" .))*## "\""#,
@@ -94,8 +94,8 @@
 [Func]{
     + use DataType,
     + use Expr,
-    + use Misc.Misc as Misc,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Misc,
+    + use Misc.Symbol,
 
     Name <- ("@"#)?#SpecialFuncPrefix Misc.ID,
 
@@ -111,8 +111,8 @@
 
 [Var]{
     + use Expr,
-    + use Misc.Misc as Misc,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Misc,
+    + use Misc.Symbol,
 
     Def <- "let"# Symbol.Space+# Misc.ID,
     Init <- Def## Symbol.Space*# "="# Symbol.Space*# Expr.GeneralExpr,
@@ -122,7 +122,7 @@
 
 [If]{
     + use Expr,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Symbol,
 
     % note: 単数行単数式 : 複数行単数式 : 複数行複数式 (ブロック),
     If <- Inline<Symbol.Space*#> : Inline<Symbol.LineEnd+#> : Block,

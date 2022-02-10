@@ -8,12 +8,12 @@
 }
 
 [Misc]{
-    + use Expr.DataType as DataType,
+    + use Expr.DataType,
     + use Symbol,
     + use Keyword,
 
     % 予約語から始まる ID、例えば reference が除外されないように否定先読み内で文字クラスが続く,
-    ID <- JOIN(!(Keyword.Reserved [^a-zA-Z0-9_]) ([a-zA-Z_] [a-zA-Z0-9_]*)##),
+    ID <- JOIN<!(Keyword.Reserved [^a-zA-Z0-9_]> ([a-zA-Z_] [a-zA-Z0-9_]*)##),
     IDChain <- (ID : DataType.BuiltInType)## (Symbol.Space*# "."# Symbol.Space*# (ID : DataType.BuiltInType)##)*##,
 
     Comment <- Symbol.Space* "#" (!Symbol.NewLine .)* Symbol.SimpleLineEnd,
@@ -22,7 +22,7 @@
 }
 
 [Keyword]{
-    + use Expr.DataType as DataType,
+    + use Expr.DataType,
 
     Reserved <- DataType.BuiltInType## : "abs" : "as" : "data" : "elif" : "else" : "end" : "enum" : "false" : "fn" : "if" : "impl" : "let" : "mut" : "pub" : "ref" : "self" : "struct" : "then" : "trait" : "true",
 }

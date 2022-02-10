@@ -5,22 +5,22 @@
 
 [Syntax]{
     + use FileItem,
-    + use Misc.Symbol as Symbol,
+    + use Misc.Symbol,
 
     Main <- Symbol.Space*# Symbol.LineEnd*# FileItem.Item*## Symbol.Space*# "\z"#,
 }
 
 [FileItem]{
     + use Block,
-    + use Expr.DataType as DataType,
-    + use Misc.Misc as Misc,
-    + use Misc.Symbol as Symbol,
+    + use Expr.DataType,
+    + use Misc.Misc,
+    + use Misc.Symbol,
 
     Item <- Symbol.Space*# (StructItem : TraitItem : EnumItem)## Block.BlockEnd#,
 
-    StructKindItem($Name) <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## $Name# Symbol.Space+# DataType.Type SimpleImpl? Symbol.LineEnd+# Block.BlockList<Block.StructFieldDef>,
-    StructItem <- StructKindItem("struct")##,
-    TraitItem <- StructKindItem("trait")##,
+    StructKindItem<$Name> <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## $Name# Symbol.Space+# DataType.Type SimpleImpl? Symbol.LineEnd+# Block.BlockList<Block.StructFieldDef>,
+    StructItem <- StructKindItem<"struct">##,
+    TraitItem <- StructKindItem<"trait">##,
 
     EnumItem <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## "enum"# Symbol.Space+# DataType.Type EnumItemTypeParameter? SimpleImpl? Symbol.LineEnd+# Block.BlockList<Block.EnumFieldDef>,
     EnumItemTypeParameter <- Symbol.Space+# DataType.Type,
@@ -29,12 +29,11 @@
 }
 
 [Block]{
-    + use Block,
-    + use Expr.DataType as DataType,
-    + use Expr.Expr as Expr,
+    + use Expr.DataType,
+    + use Expr.Expr,
     + use Method,
-    + use Misc.Symbol as Symbol,
-    + use Misc.Misc as Misc,
+    + use Misc.Symbol,
+    + use Misc.Misc,
 
     BlockEnd <- Symbol.Space*# "end"# Symbol.LineEnd+#,
 
@@ -44,17 +43,17 @@
     StructFieldDef <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Misc.ID Symbol.Space+# DataType.Type Symbol.LineEnd+#,
     EnumFieldDef <- Symbol.Space*# Misc.ID (Symbol.Space*# "="# Symbol.Space*# Expr.GeneralExpr)?## Symbol.LineEnd+#,
 
-    ImplBlock <- Symbol.Space*# "impl"# BlockTypeParameter?## Symbol.LineEnd+# (Method.MethodDef*)#MethodDefList Block.BlockEnd#,
+    ImplBlock <- Symbol.Space*# "impl"# BlockTypeParameter?## Symbol.LineEnd+# (Method.MethodDef*)#MethodDefList BlockEnd#,
     BlockTypeParameter <- Symbol.Space+# DataType.Type,
 }
 
 [Method]{
     + use Block,
-    + use Expr.DataType as DataType,
-    + use Expr.Expr as Expr,
-    + use Expr.Func as Func,
-    + use Misc.Misc as Misc,
-    + use Misc.Symbol as Symbol,
+    + use Expr.DataType,
+    + use Expr.Expr,
+    + use Expr.Func,
+    + use Misc.Misc,
+    + use Misc.Symbol,
 
     MethodDef <- MethodDefStart## (Symbol.Space*# Expr.GeneralExpr Symbol.Space*# Symbol.LineEnd+#)*#ExprList Block.BlockEnd#,
     MethodDefStart <- Symbol.Space*# (Misc.PubAccessRange Symbol.Space+#)?## Func.DefAbs? "fn"# Symbol.Space+# Func.Name Symbol.Space*# "("# DefArgDyn? Symbol.Space*# DefArgs? Symbol.Space*# ")"# Symbol.Space*# DataType.Type? Symbol.LineEnd+#,

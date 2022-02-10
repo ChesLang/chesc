@@ -63,11 +63,8 @@ impl CompileSubcommand {
 
         // todo: 環境変数 CHES_HOME の値を利用する
         let fcpeg_file_path = "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/syntax.fcpeg".to_string();
-        let mut lib_fcpeg_file_map = HashMap::<String, String>::new();
-        lib_fcpeg_file_map.insert("Expr".to_string(), "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/expr.fcpeg".to_string());
-        lib_fcpeg_file_map.insert("Misc".to_string(), "src/root/Ches_1/rustnut/compiler/1.0.0/lib/fcpeg/misc.fcpeg".to_string());
 
-        let mut cmp = Compiler::load(cons.clone(), fcpeg_file_path, lib_fcpeg_file_map)?;
+        let mut cmp = Compiler::load(cons.clone(), fcpeg_file_path, HashMap::new())?;
         cmp.compile(self.input.clone(), CompilerMode::Executable)?;
 
         let end_time = start_time.elapsed();
